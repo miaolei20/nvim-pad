@@ -82,7 +82,7 @@ end
 vim.api.nvim_create_user_command("RunCode", compile_and_run, {})
 
 -- 绑定快捷键 F5 运行代码
-vim.keymap.set("n", "<leader>r", ":RunCode<CR>", { noremap = true, silent = true, desc = "运行代码" })
+vim.keymap.set("n", "<C-r>", ":RunCode<CR>", { noremap = true, silent = true, desc = "运行代码" })
 
 -- Coc美化配置
 vim.api.nvim_set_hl(0, 'CocMenuSel', { bg = '#3a3a3a', fg = 'white' })  -- 选中项背景色
