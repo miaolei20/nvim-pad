@@ -1,98 +1,112 @@
 return {
   {
-    "nvim-tree/nvim-tree.lua",  -- 主插件
-    cmd = { "NvimTreeToggle", "NvimTreeOpen" },  -- 命令名称
-    keys = { "<leader>e" },  -- 快捷键
-    dependencies = {
-      "nvim-tree/nvim-web-devicons",  -- 图标插件
-    },
+    "nvim-tree/nvim-tree.lua",
+    version = "*",
+    cmd = { "NvimTreeToggle", "NvimTreeOpen" },
     keys = {
-      { "<leader>e", "<cmd>NvimTreeToggle<CR>", desc = "Toggle file tree" },  -- 显式声明快捷键
+      { "<C-b>", "<cmd>NvimTreeToggle<CR>", desc = "Toggle file tree" },
+      { "<leader>e", "<cmd>NvimTreeFocus<CR>", desc = "Focus file tree" },
+      { "<leader>r", "<cmd>NvimTreeFindFile<CR>", desc = "Reveal current file" },
+    },
+    dependencies = {
+      "nvim-tree/nvim-web-devicons",
+      config = function()
+        require("nvim-web-devicons").setup({
+          override = { txt = { icon = " ", color = "#428850" } },
+        })
+      end,
     },
     config = function()
-      vim.g.loaded_netrw = 1  -- 禁用 netrw
-      vim.g.loaded_netrwPlugin = 1  -- 禁用 netrw 插件
+      -- 禁用 netrw
+      vim.g.loaded_netrw = 1
+      vim.g.loaded_netrwPlugin = 1
 
+      local api = require("nvim-tree.api")
+
+      -- 精简按键映射
+      local function on_attach(bufnr)
+        local mappings = {
+          { "n", "<CR>", api.node.open.edit, "Open" },
+          { "n", "o", api.node.open.edit, "Open" },
+          { "n", "<C-v>", api.node.open.vertical, "Open Vertical" },
+          { "n", "<C-s>", api.node.open.horizontal, "Open Horizontal" },
+          { "n", "a", api.fs.create, "Create" },
+          { "n", "d", api.fs.trash, "Trash" },
+          { "n", "r", api.fs.rename, "Rename" },
+          { "n", "R", api.tree.reload, "Refresh" },
+          { "n", "y", api.fs.copy.absolute_path, "Copy Path" },
+          { "n", "q", api.tree.close, "Close" },
+        }
+        for _, map in ipairs(mappings) do
+          vim.keymap.set(map[1], map[2], map[3], {
+            buffer = bufnr,
+            noremap = true,
+            silent = true,
+            desc = "NvimTree: " .. map[4],
+          })
+        end
+      end
+
+      -- NvimTree 配置
       require("nvim-tree").setup({
+        on_attach = on_attach,
+        hijack_cursor = true,
+        sync_root_with_cwd = true,
+        update_focused_file = { enable = true, update_root = true },
         view = {
-          width = 30,  -- 文件树宽度
-          side = "left",  -- 文件树位置
-          number = false,  -- 不显示行号
-          relativenumber = false,  -- 不显示相对行号
-          signcolumn = "yes",  -- 显示符号列
-          float = {  -- LazyVim 风格浮动配置
-            enable = false,  -- 禁用浮动窗口
-            quit_on_focus_loss = true,  -- 失去焦点时关闭浮动窗口
-            open_win_config = {
-              width = 40,  -- 浮动窗口宽度
-              height = 30,  -- 浮动窗口高度
-              col = 1,  -- 浮动窗口列位置
-              row = 1,  -- 浮动窗口行位置
-            },
-          },
+          adaptive_size = true,
+          width = { min = 30, max = 50 },
+          side = "left",
+          number = false,
+          relativenumber = false,
         },
         renderer = {
-          indent_markers = {
-            enable = true,  -- 启用缩进标记
-          },
+          indent_width = 2,
+          indent_markers = { enable = true },
           icons = {
-            git_placement = "after",  -- Git 图标位置
-            show = {
-              folder_arrow = false,  -- 不显示文件夹箭头
-            },
             glyphs = {
+              default = "",
+              symlink = "",
               folder = {
-                arrow_closed = "▶",  -- 关闭文件夹箭头图标
-                arrow_open = "▼",  -- 打开文件夹箭头图标
+                default = "",
+                open = "",
               },
+              git = { unstaged = "✗", staged = "✓", untracked = "★" },
             },
           },
-          highlight_git = true,  -- 高亮 Git 状态
-          group_empty = true,  -- 分组显示空文件夹
+          highlight_git = true,
+          group_empty = true,
+        },
+        diagnostics = {
+          enable = true,
+          severity = { min = vim.diagnostic.severity.HINT },
+          icons = { error = "" },
+        },
+        filters = {
+          custom = { "^.git$", "^node_modules$" },
+          exclude = { ".env" },
         },
         actions = {
-          open_file = {
-            quit_on_open = true,  -- 打开文件后关闭文件树
-            window_picker = {
-              enable = false,  -- 禁用窗口选择器
-            },
-          },
-          change_dir = {
-            enable = false,  -- 禁用目录切换
-          },
+          open_file = { quit_on_open = false, window_picker = { enable = true } },
         },
-        update_focused_file = {
-          enable = true,  -- 自动聚焦当前文件
-          update_root = false,  -- 不更新根目录
+        git = { enable = true, timeout = 200, ignore = false },
+        filesystem_watchers = {
+          enable = true,
+          debounce_delay = 500,
+          ignore_dirs = { "node_modules" },
         },
-        git = {
-          enable = true,  -- 启用 Git 集成
-          ignore = false,  -- 不忽略 Git 忽略的文件
-          timeout = 200,  -- Git 操作超时时间
-        },
-        diagnostics = {  -- 诊断集成
-          enable = true,  -- 启用诊断
-          show_on_dirs = false,  -- 不在目录上显示诊断
-          icons = {
-            info = "",  -- 信息图标
-            warning = "",  -- 警告图标
-            error = "",  -- 错误图标
-          },
-        },
+        trash = { cmd = "gio trash", require_confirm = true },
       })
 
-      -- 增强版快捷键 (LazyVim 风格)
-      vim.api.nvim_create_autocmd("FileType", {
-        pattern = "NvimTree",
+      -- 窗口关闭策略
+      vim.api.nvim_create_autocmd("BufEnter", {
+        nested = true,
         callback = function()
-          local map = function(mode, lhs, rhs, desc)
-            vim.keymap.set(mode, lhs, rhs, { buffer = true, desc = desc })
+          if #vim.api.nvim_list_wins() == 1 and vim.bo.ft == "NvimTree" then
+            vim.cmd("quit")
           end
-          map("n", "l", "<CR>", "Open")  -- l 键打开文件
-          map("n", "h", "-", "Collapse")  -- h 键折叠文件夹
-          map("n", "q", "<cmd>NvimTreeClose<CR>", "Close")  -- q 键关闭文件树
-        end
+        end,
       })
-    end
-  }
+    end,
+  },
 }

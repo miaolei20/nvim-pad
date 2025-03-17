@@ -1,104 +1,103 @@
--- file: plugins/telescope.lua
 return {
   {
-    "nvim-telescope/telescope.nvim",  -- 主插件
-    version = false, -- 使用最新版本
-    cmd = "Telescope",  -- 命令名称
-    keys = {  -- 快捷键
-      "<leader>ff",  -- 查找文件
-      "<leader>fg",  -- 搜索文本
-      "<leader>fb",  -- 查找缓冲区
-      "<leader>fh",  -- 查找帮助标签
-      "<leader>fr"  -- 查找最近文件
-    },
+    "nvim-telescope/telescope.nvim",
+    version = false,
+    cmd = "Telescope",
+    event = "VeryLazy",
     dependencies = {
-      "nvim-lua/plenary.nvim",  -- 必要依赖
-      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" }, -- 性能优化
-      "nvim-tree/nvim-web-devicons" -- 图标支持
+      "nvim-lua/plenary.nvim",
+      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+      "polirritmico/telescope-lazy-plugins.nvim",
+      "nvim-telescope/telescope-file-browser.nvim",
+      "debugloop/telescope-undo.nvim",
+      "nvim-telescope/telescope-frecency.nvim",
     },
+    keys = function()
+      local builtin = require("telescope.builtin")
+      return {
+        { "<leader>ff", builtin.find_files, desc = "Find Files" },
+        { "<leader>fg", builtin.live_grep, desc = "Live Grep" },
+        { "<leader>fs", "<CMD>Telescope frecency workspace=CWD<CR>", desc = "Frecency Files" },
+        { "<leader>fe", "<CMD>Telescope file_browser path=%:p:h theme=dropdown<CR>", desc = "File Browser" },
+        { "<leader>fu", "<CMD>Telescope undo<CR>", desc = "Undo History" },
+        { "<leader>fp", "<CMD>Telescope lazy_plugins<CR>", desc = "Lazy Plugins" },
+      }
+    end,
     config = function()
-      local colors = require("onedark.palette").dark  -- 获取配色方案
       local telescope = require("telescope")
       local actions = require("telescope.actions")
 
-      -- 颜色适配 LazyVim 风格
-      vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = colors.gray, bg = colors.bg0 })
-      vim.api.nvim_set_hl(0, "TelescopePromptBorder", { fg = colors.cyan, bg = colors.bg1 })
-      vim.api.nvim_set_hl(0, "TelescopeResultsBorder", { fg = colors.bg1, bg = colors.bg0 })
-      vim.api.nvim_set_hl(0, "TelescopeTitle", { fg = colors.cyan, bold = true })
-      vim.api.nvim_set_hl(0, "TelescopeSelection", { bg = colors.bg2, bold = true })
+      -- 异步高亮设置
+      vim.schedule(function()
+        local palette = require("onedark.palette").dark
+        local hl_groups = {
+          TelescopeBorder = { fg = palette.grey, bg = palette.bg0 },
+          TelescopePromptBorder = { fg = palette.cyan, bg = palette.bg1 },
+          TelescopeTitle = { fg = palette.cyan, bold = true },
+        }
+        for group, def in pairs(hl_groups) do
+          vim.api.nvim_set_hl(0, group, def)
+        end
+      end)
 
       telescope.setup({
         defaults = {
-          prompt_prefix = "   ",  -- 提示符前缀
-          selection_caret = "  ",  -- 选择项前缀
-          path_display = { "truncate" },  -- 路径显示方式
-          sorting_strategy = "ascending",  -- 排序策略
-          layout_config = {
-            horizontal = {
-              prompt_position = "top",  -- 提示符位置
-              preview_width = 0.55,  -- 预览窗口宽度
-              results_width = 0.8  -- 结果窗口宽度
-            },
-            vertical = { mirror = false },  -- 垂直布局配置
-            width = 0.87,  -- 总宽度
-            height = 0.80,  -- 总高度
-            preview_cutoff = 120  -- 预览窗口截断阈值
-          },
+          dynamic_preview_title = true,
+          prompt_prefix = "   ",
+          path_display = { "truncate" },
+          borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
           mappings = {
             i = {
-              ["<C-j>"] = actions.move_selection_next,  -- Ctrl+j 移动到下一个选择项
-              ["<C-k>"] = actions.move_selection_previous,  -- Ctrl+k 移动到上一个选择项
-              ["<C-n>"] = actions.cycle_history_next,  -- Ctrl+n 循环到下一个历史记录
-              ["<C-p>"] = actions.cycle_history_prev,  -- Ctrl+p 循环到上一个历史记录
-              ["<ESC>"] = actions.close  -- ESC 关闭 Telescope
-            }
+              ["<C-j>"] = actions.move_selection_next,
+              ["<C-k>"] = actions.move_selection_previous,
+              ["<ESC>"] = actions.close,
+            },
           },
-          file_ignore_patterns = {  -- 忽略的文件模式
-            "node_modules",
-            "%.git",
-            "target",
-            "build",
-            "%.lock",
-            "%.idea",
-            "%.vscode",
-            "%.output",
-            "%.class"
-          }
+          file_ignore_patterns = { "^.git/", "^node_modules/", "^.idea/", "__pycache__/" },
+          vimgrep_arguments = {
+            "rg", "--color=never", "--no-heading", "--with-filename",
+            "--line-number", "--column", "--smart-case", "--hidden",
+            "--glob=!.git", "--glob=!node_modules",
+          },
         },
         pickers = {
           find_files = {
-            hidden = true,  -- 显示隐藏文件
-            find_command = { "fd", "--type=file", "--hidden", "--exclude=.git" }  -- 使用 fd 查找文件
+            hidden = true,
+            find_command = { "fd", "--type=file", "--hidden" },
           },
-          live_grep = {
-            only_sort_text = true,  -- 仅对文本排序
-            theme = "dropdown",  -- 使用下拉菜单主题
-            additional_args = function()
-              return { "--hidden" }  -- 额外参数：显示隐藏文件
-            end
-          }
         },
         extensions = {
-          fzf = {
-            fuzzy = true,  -- 启用模糊搜索
-            override_generic_sorter = true,  -- 覆盖通用排序器
-            override_file_sorter = true,  -- 覆盖文件排序器
-            case_mode = "smart_case"  -- 智能大小写模式
-          }
-        }
+          fzf = { fuzzy = true },
+          lazy_plugins = {
+            theme = "dropdown",
+            layout_config = { width = 0.4 },
+            lazy_config = vim.fn.stdpath("config") .. "/init.lua",
+          },
+          frecency = {
+            db_safe_mode = false,
+            auto_validate = true,
+            show_scores = true,
+            show_unindexed = true,
+            ignore_patterns = { "*.git/*" },
+            workspaces = {
+              ["conf"] = vim.fn.stdpath("config"),
+              ["project"] = "~/projects",
+            },
+          },
+        },
       })
 
-      -- 加载扩展
-      telescope.load_extension("fzf")
-
-      -- LazyVim 风格快捷键
-      local map = vim.keymap.set
-      map("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find Files" })
-      map("n", "<leader>fg", "<cmd>Telescope live_grep<cr>", { desc = "Live Grep" })
-      map("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Find Buffers" })
-      map("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Help Tags" })
-      map("n", "<leader>fr", "<cmd>Telescope oldfiles<cr>", { desc = "Recent Files" })
-    end
-  }
+      -- 延迟加载扩展
+      local extensions = { "fzf", "file_browser", "undo", "lazy_plugins", "frecency" }
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "TelescopePreviewerLoaded",
+        once = true,
+        callback = function()
+          for _, ext in ipairs(extensions) do
+            telescope.load_extension(ext)
+          end
+        end,
+      })
+    end,
+  },
 }

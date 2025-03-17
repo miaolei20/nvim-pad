@@ -1,68 +1,53 @@
--- file: plugins/bufferline.lua
 return {
-    {
-        "akinsho/bufferline.nvim",                                       -- 插件名称
-        event = "VeryLazy",                                              -- 延迟加载插件
-        dependencies = { "nvim-web-devicons" },                          -- 依赖的插件
-        config = function()
-            local colors = require("onedark.palette").dark -- 获取配色方案
+  {
+    "akinsho/bufferline.nvim",
+    dependencies = {
+      "nvim-tree/nvim-web-devicons", -- 文件图标支持
+    },
+    event = { "BufReadPost", "BufNewFile" }, -- 更精确的加载时机
+    config = function()
+      -- 延迟加载配置，避免启动时阻塞
+      vim.defer_fn(function()
+        local status, palette = pcall(require, "onedark.palette")
+        if not status then return end
 
-            -- 基础保障配置
-            vim.opt.termguicolors = true -- 启用终端真彩色
-            vim.opt.showtabline = 2 -- 始终显示标签栏
+        local dark = palette.dark
+        -- 使用局部变量缓存颜色
+        local colors = {
+          bg = dark.bg,
+          fg = dark.fg,
+          blue = dark.blue,
+        }
 
-            require("bufferline").setup({
-                options = {
-                    mode = "buffers", -- 模式设置为缓冲区
-                    numbers = "none", -- 不显示缓冲区编号
-                    close_command = "bdelete! %d", -- 关闭缓冲区的命令
-                    offsets = { {
-                        filetype = "NvimTree", -- 针对 NvimTree 文件类型的偏移设置
-                        text = "  Explorer ", -- 显示的文本
-                        highlight = "Comment", -- 高亮组
-                        text_align = "left", -- 文本对齐方式
-                        padding = 1 -- 填充
-                    } },
-                    separator_style = "thin", -- 分隔符样式
-                    always_show_bufferline = true, -- 始终显示缓冲区线
-                    show_buffer_close_icons = false, -- 不显示缓冲区关闭图标
-                    show_close_icon = false, -- 不显示关闭图标
-                    diagnostics = "nvim_lsp", -- 启用 LSP 诊断
-                    diagnostics_indicator = function(_, _, diag)
-                        return (diag.error and " " or "") .. (diag.warning and " " or "") -- 显示诊断图标
-                    end,
-                },
-                highlights = {
-                    fill = { bg = colors.bg0 }, -- 填充背景颜色
-                    background = {
-                        bg = colors.bg0,
-                        fg = colors.gray
-                    },
-                    buffer_selected = {
-                        bg = colors.bg0,
-                        fg = colors.fg,
-                        bold = true,
-                        italic = false
-                    },
-                    modified = {
-                        fg = colors.green,
-                        bg = colors.bg0
-                    },
-                    diagnostic = {
-                        fg = colors.yellow,
-                        bg = colors.bg0
-                    }
-                }
-            })
-
-            -- 强制刷新保障
-            vim.api.nvim_create_autocmd("VimEnter", {
-                callback = function()
-                    vim.schedule(function()
-                        require("bufferline").refresh() -- 刷新 bufferline
-                    end)
-                end
-            })
-        end
-    }
+        require("bufferline").setup({
+          options = {
+            numbers = "ordinal",
+            separator_style = "none",
+            diagnostics = false,
+            show_close_icon = false,
+            show_buffer_icons = true,
+            always_show_bufferline = false, -- 改为 false，只在有多个 buffer 时显示
+            offsets = {
+              {
+                filetype = "NvimTree",
+                text = "",
+                padding = 1,
+                highlight = "Directory",
+              },
+            },
+          },
+          highlights = {
+            fill = { fg = colors.fg, bg = colors.bg },
+            background = { fg = colors.fg, bg = colors.bg },
+            buffer_selected = { fg = colors.fg, bg = colors.bg, bold = true },
+            separator = { fg = colors.bg, bg = colors.bg },
+            separator_visible = { fg = colors.bg, bg = colors.bg },
+            separator_selected = { fg = colors.bg, bg = colors.bg },
+            indicator_selected = { fg = colors.blue, bg = colors.bg },
+            numbers = { fg = colors.fg, bg = colors.bg },
+          },
+        })
+      end, 50) -- 延迟 50ms 加载
+    end,
+  },
 }
