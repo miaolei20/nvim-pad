@@ -1,5 +1,3 @@
-以下是基于你的 Neovim 配置生成的 `README.md` 文档模板：
-
 ```markdown
 # NeoVim 配置说明
 
