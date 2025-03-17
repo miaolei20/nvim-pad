@@ -41,7 +41,7 @@ brew install --cask font-fira-code-nerd-font
 
 1. **克隆配置仓库**
 ```bash
-git clone https://github.com/yourusername/nvim-config ~/.config/nvim
+git clone https://github.com/miaolei20/nvim-pad- ~/.config/nvim
 ```
 
 2. **首次启动自动安装**
