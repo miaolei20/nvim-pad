@@ -1,4 +1,3 @@
-```markdown
 # NeoVim 配置说明
 
 ![NeoVim Screenshot](./screenshot.png) <!-- 可替换为你的实际截图 -->
