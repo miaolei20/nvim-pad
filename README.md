@@ -17,7 +17,7 @@
 # Ubuntu/Debian
 sudo apt install git make python3-pip nodejs npm ripgrep fd-find
 # termux
-pkg install git make clang python nodejs ripgrep fd
+pkg install git make clang python nodejs yarn ripgrep fd
 # macOS (Homebrew)
 brew install git node ripgrep fd
 ```
