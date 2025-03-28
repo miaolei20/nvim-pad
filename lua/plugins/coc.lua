@@ -1,5 +1,5 @@
 return {
-  -- 类 VSCode 主题
+  -- VSCode-like theme
   {
     "olimorris/onedarkpro.nvim",
     priority = 1000,
@@ -8,70 +8,89 @@ return {
     end
   },
 
-  -- Coc 智能补全核心
+  -- Coc completion core optimized for C/C++
   {
     "neoclide/coc.nvim",
     branch = "release",
     build = "yarn install",
     config = function()
-      -- 更精确的补全控制 -------------------------------------------------------
-      -- 检查是否是Coc的补全菜单
-      local function check_back_space()
-        local col = vim.fn.col('.') - 1
-        return col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') ~= nil
-      end
+      -- TAB mapping with inline backspace check for natural behavior
+      vim.api.nvim_set_keymap("i", "<TAB>",
+        [[coc#pum#visible() ? coc#pum#next(1) : (col('.') <= 1 || getline('.')[col('.')-2] =~ '\s' ? "\<TAB>" : coc#refresh())]],
+        { noremap = true, silent = true, expr = true }
+      )
+      vim.api.nvim_set_keymap("i", "<S-TAB>",
+        [[coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"]],
+        { noremap = true, silent = true, expr = true }
+      )
+      vim.api.nvim_set_keymap("i", "<CR>",
+        [[coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"]],
+        { noremap = true, silent = true, expr = true }
+      )
 
-      -- 改进的快捷键映射
-      vim.api.nvim_set_keymap("i", "<TAB>", [[coc#pum#visible() ? coc#pum#next(1) : (check_back_space() ? "<TAB>" : coc#refresh())]], {noremap = true, silent = true, expr = true})
-      vim.api.nvim_set_keymap("i", "<S-TAB>", [[coc#pum#visible() ? coc#pum#prev(1) : "<C-h>"]], {noremap = true, silent = true, expr = true})
-      vim.api.nvim_set_keymap("i", "<CR>", [[coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"]], {noremap = true, silent = true, expr = true})
-
-      -- 性能优化配置 ----------------------------------------------------------
+      -- Optimized Coc configuration for C/C++
       vim.g.coc_config = {
         suggest = {
-          noselect = true,          -- 不自动选择第一个补全项
-          enablePreview = false,   -- 关闭预览提升性能
-          enablePreselect = false, -- 关闭预选
-          debounce = 100,          -- 降低输入延迟
-          minInput = 1             -- 输入1个字符后触发补全
+          noselect = true,          -- Don't auto-select first item
+          enablePreview = false,    -- Disable preview for performance
+          enablePreselect = false,  -- Disable pre-selection
+          debounce = 50,           -- Faster response for C/C++ typing
+          minInput = 1,            -- Trigger after 1 char
+          timeout = 500,           -- Completion timeout
+          maxMenuWidth = 80        -- Limit menu width
         },
         signature = {
-          enable = false           -- 暂时关闭签名帮助
+          enable = true,           -- Enable signature help for C/C++ functions
+          autoTrigger = "trigger"  -- Trigger only on explicit request
         },
         coc = {
-          enableTriggerCompletion = false, -- 禁用自动触发
-          lazyLoad = true          -- 启用懒加载
+          enableTriggerCompletion = false, -- Disable auto-trigger
+          lazyLoad = true                  -- Enable lazy loading
+        },
+        -- C/C++ specific settings
+        ["clangd.arguments"] = {
+          "--background-index",          -- Index in background
+          "--suggest-missing-includes",  -- Suggest includes
+          "--clang-tidy",                -- Enable clang-tidy
+          "--header-insertion=iwyu"      -- Include-what-you-use style
         }
       }
 
-      -- 精简扩展列表（按需加载）
+      -- Extensions optimized for C/C++
       vim.g.coc_global_extensions = {
-        'coc-tsserver', 
-        'coc-json', 
-        'coc-html', 
-        'coc-css',
-        'coc-prettier',
-        'coc-eslint',
-        'coc-snippets'
+        'coc-clangd',       -- C/C++ language server
+        'coc-cmake',        -- CMake support
+        'coc-json',         -- JSON support (useful for config files)
+        'coc-snippets',     -- Snippet support
+        'coc-pairs'         -- Auto-pair brackets, useful for C/C++
       }
 
-      -- 优化补全触发逻辑
+      -- C/C++ specific completion triggers and diagnostics
       vim.api.nvim_create_autocmd("User", {
         pattern = "CocSetup",
         callback = function()
           vim.fn.CocAddConfig("suggest.triggerAfterInsertEnter", false)
-          vim.fn.CocAddConfig("suggest.triggerCharacters", {".", ":", "/", "("})
+          vim.fn.CocAddConfig("suggest.triggerCharacters", {".", ":", ">", "(", "*"}) -- C++ specific triggers
+          vim.fn.CocAddConfig("suggest.acceptSuggestionOnTrigger", true)
+          vim.fn.CocAddConfig("suggest.snippetIndicator", " ►")
+          -- Filetype-specific settings
+          vim.fn.CocAddConfig("languageserver.ccls.enable", false) -- Ensure only clangd is used
         end
       })
 
-      -- Snippets 优化配置
+      -- Snippet and navigation mappings
       vim.api.nvim_set_keymap("i", "<C-j>", "<Plug>(coc-snippets-expand-jump)", {})
       vim.api.nvim_set_keymap("s", "<C-j>", "<Plug>(coc-snippets-expand-jump)", {})
-      vim.api.nvim_set_keymap("s", "<C-k>", "<Plug>(coc-snippets-expand-jump)", {})
+      vim.api.nvim_set_keymap("s", "<C-k>", "<Plug>(coc-snippets-expand-jump-prev)", {})
 
+      -- Additional C/C++ productivity mappings
+      vim.api.nvim_set_keymap("n", "gd", "<Plug>(coc-definition)", { silent = true })
+      vim.api.nvim_set_keymap("n", "gy", "<Plug>(coc-type-definition)", { silent = true })
+      vim.api.nvim_set_keymap("n", "gi", "<Plug>(coc-implementation)", { silent = true })
+      vim.api.nvim_set_keymap("n", "gr", "<Plug>(coc-references)", { silent = true })
     end
   },
 
-  -- 可选：如果存在其他补全插件需要禁用
-  -- { "nvim-cmp", enabled = false },  -- 示例：禁用 nvim-cmp
+  -- Optional: Disable conflicting completion plugins
+  -- { "nvim-cmp", enabled = false },
 }
