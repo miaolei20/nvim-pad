@@ -1,60 +1,26 @@
--- file: plugins/rainbow.lua
+-- rainbow.lua
 return {
   {
     "HiPhish/rainbow-delimiters.nvim",
     event = "BufReadPost",
-    dependencies = { "navarasu/onedark.nvim" },
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
-      -- 等待主题加载完成
-      vim.api.nvim_create_autocmd("User", {
-        pattern = "LazyVimStarted",
-        once = true,
-        callback = function()
-          local colors = require("onedark.palette").dark
+      local colors = require("onedarkpro.helpers").get_colors()
+      local rainbow = require("rainbow-delimiters")
 
-          -- 定义彩虹颜色（适配 OneDark 主题）
-          local rainbow_colors = {
-            red = colors.red,
-            yellow = colors.yellow,
-            blue = colors.blue,
-            orange = colors.orange,
-            green = colors.green,
-            violet = colors.purple,
-            cyan = colors.cyan
-          }
+      vim.api.nvim_set_hl(0, "RainbowDelimiterRed",    { fg = colors.red })
+      vim.api.nvim_set_hl(0, "RainbowDelimiterYellow", { fg = colors.yellow })
+      vim.api.nvim_set_hl(0, "RainbowDelimiterBlue",   { fg = colors.blue })
+      vim.api.nvim_set_hl(0, "RainbowDelimiterGreen",  { fg = colors.green })
+      vim.api.nvim_set_hl(0, "RainbowDelimiterCyan",   { fg = colors.cyan })
+      vim.api.nvim_set_hl(0, "RainbowDelimiterViolet", { fg = colors.purple })
 
-          -- 创建高亮组
-          for level, color in pairs(rainbow_colors) do
-            local hlgroup = "RainbowDelimiter" .. level:sub(1,1):upper() .. level:sub(2)
-            vim.api.nvim_set_hl(0, hlgroup, {
-              fg = color,
-              bold = level == "red",
-              nocombine = true
-            })
-          end
-
-          -- 配置插件
-          require("rainbow-delimiters.setup")({
-            highlight = {
-              "RainbowDelimiterRed",
-              "RainbowDelimiterYellow",
-              "RainbowDelimiterBlue",
-              "RainbowDelimiterOrange",
-              "RainbowDelimiterGreen",
-              "RainbowDelimiterViolet",
-              "RainbowDelimiterCyan"
-            },
-            strategy = {
-              [""] = require("rainbow-delimiters").strategy["global"],
-              commonlisp = require("rainbow-delimiters").strategy["local"]
-            },
-            query = {
-              [""] = "rainbow-delimiters",
-              latex = "rainbow-blocks"
-            },
-            priority = 1100
-          })
-        end
+      require("rainbow-delimiters.setup").setup({
+        strategy = {
+          [''] = require('rainbow-delimiters').strategy['global'],
+        },
+        query = {[""] = "rainbow-delimiters"},
+        highlight = vim.tbl_keys(vim.api.nvim_get_hl(0, {name = "RainbowDelimiterRed"}))
       })
     end
   }
